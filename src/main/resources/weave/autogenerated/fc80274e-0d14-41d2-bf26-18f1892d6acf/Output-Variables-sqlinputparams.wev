@@ -1,0 +1,10 @@
+%dw 2.0
+
+type auto_fc80274e_0d14_41d2_bf26_18f1892d6acf_Output_Variables_sqlinputparams = {|
+  index: Null, 
+  symbol: Null, 
+  operation: Null, 
+  quantity: Null, 
+  price: Null
+|}
+

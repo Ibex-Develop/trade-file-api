@@ -1,0 +1,12 @@
+%dw 2.0
+
+type auto_fc80274e_0d14_41d2_bf26_18f1892d6acf_Input_Payload = {
+  symbol: String, 
+  quantity: Number, 
+  price: Number, 
+  index: String, 
+  "type": String, 
+  operation: String, 
+  _?: Any
+}
+

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<sub-flow name="trade-file" doc:id="c730eebe-d285-436a-b9ed-5929e7bbe9ea" >
+		<logger level="INFO" doc:name="Logger" doc:id="2af63f83-7104-4b64-b3d7-a72da8abfaf9" message="#['request recieved to process trade :' ++ correlationId]" />
+		<choice doc:name="Choice" doc:id="5231e296-0179-4abb-bad1-64b9ae9531fd">
+			<when expression='#[lower(payload."type") == "equity"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="e571df90-6fa3-495c-a253-b64765b0b590" message="#['recieved equity trade :'++  correlationId]" />
+				<ee:transform doc:name="set filePath" doc:id="64f2c61c-ce28-4530-9590-9a3ce48b96a4">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="filePath"><![CDATA[%dw 2.0
+output application/java
+---
+"E:\\tradeAPI\\Data\\Equity\\" ++ ("equity_trade_" ++ (now() as String {format:"yyyy_MM_dd_HH_mm_ss"}) ++".json")]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="createfile" doc:id="4a467141-7bf7-43de-aaeb-9a850798e7cf" name="createfile" />
+				<ee:transform doc:name="set response" doc:id="ed63c3b6-e896-49c9-8cc7-afa3920c49c7">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "trades processed Successfully"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[lower(payload."type") == "fx"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="013fe85a-6df4-4720-b80b-922a17cc7619" message="#['recieved fx trade :' ++ correlationId]" />
+				<ee:transform doc:name="Transform Message" doc:id="8c9c5f97-647a-475e-965b-b7f83b17a7f3">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="filePath"><![CDATA[%dw 2.0
+output application/json
+---
+p("fx.filePath") ++ (p("fx.fileName") ++ (now() as String {format:"yyyy_MM_dd_HH_mm_ss"}) ++".json")]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="createfile" doc:id="4f282631-166e-4d37-a24d-b26062e5acda" name="createfile" />
+				<ee:transform doc:name="Transform Message" doc:id="1dc080ef-cccd-418e-8d07-2f4aa5779599" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"processed": (now() >> "CET") as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"},
+    "today" : "processed trade"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			
+</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="1870a0c6-6d11-436b-9d72-3185b7a9e85e" message='invalid trade type : #[payload."type"]' />
+			</otherwise>
+		</choice>
+	</sub-flow>
+	
+	<global-property doc:name="Global Property" doc:id="08136a0a-5ff5-401f-b008-b638bb309127" name="env" value="dev" />
+	<sub-flow name="createfile" doc:id="10304ea5-ed5e-43d2-b32a-0cd33c997738" >
+		<try doc:name="Try" doc:id="59a23b4a-3f3b-4f83-a175-c5093160b62b" >
+			<file:write doc:id="0c928fbf-18e6-45bb-9262-870140571d33" config-ref="File_Config" path="#[vars.filePath]"/>
+			<logger level="INFO" doc:name="Logger" doc:id="4c716a37-4841-4e47-970f-fee6892a1b56" message="#['File created successfully :' ++ correlationId]" />
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bd1103bb-b4d9-4cdd-a768-377c8a6102bd" >
+					<logger level="INFO" doc:name="Logger" doc:id="09586311-d73d-43ca-84a3-77e9a18fd85d" message="#['Error occur while creating a file, correlationId:' ++ correlationId]"/>
+					<ee:transform doc:name="Set error response" doc:id="54f47843-4a79-48d2-8241-b15eead60132" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "failed",
+	"errorType" : error.errorType,
+	"errorDiscrption": error.description
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+	</sub-flow>
+</mule>

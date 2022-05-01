@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="3956168d-fea9-42c3-92de-e9ec2b06334c" >
+		<db:mssql-connection host="DESKTOP-5GGF7FH" instanceName="FITSE" user="sa" password="r0mram14" databaseName="MyData" />
+	</db:config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="449bacb4-b36f-490f-be07-ba3b9b98853f" />
+	<configuration-properties doc:name="Configuration properties" doc:id="905f88de-febe-4f1d-9952-321d2096d240" file="config/${env}.yaml" />
+	
+	
+	
+	
+</mule>

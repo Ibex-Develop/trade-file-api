@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_c313027b_92c5_49d5_a079_77c4d5e1c0f2_Input_Variables_sqlinputparams = Any
+

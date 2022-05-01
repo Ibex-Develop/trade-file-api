@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<sub-flow name="process-trade-to-ods" doc:id="fc80274e-0d14-41d2-bf26-18f1892d6acf" >
+		<logger level="INFO" doc:name="Logger" doc:id="0b8e331a-efe0-4038-8e85-439a416d1ba7" message="proccess trade recieved"/>
+		<choice doc:name="Choice" doc:id="54dfcac9-e0b0-4372-8dee-ab6400216ff5" >
+			<when expression='#[lower(payload."type") == "equity"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="6932c448-78e1-45ef-966f-27cb4d3eef20" message="#['recieved Equity trade, correlationId: ' ++ correlationId]"/>
+				<ee:transform doc:name="Transform Message" doc:id="158a434c-b61f-482e-aaee-6795fec445ff">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable resource="sqlQuery.dwl" variableName="sqlQuery" />
+						<ee:set-variable resource="sqlinputparams.dwl" variableName="sqlinputparams" />
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="insert-trade-to-ods" doc:id="9bb64d67-af74-4dc2-8eef-bca43df18a32" name="insert-trade-to-ods" />
+				<ee:transform doc:name="set response" doc:id="9c49a28f-7b13-4271-9ab6-6974fba552d2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "trade process Successfully!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[lower(payload."type") == "fx"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="80fba2ff-0db4-4622-96d5-03a3b73b3da1" message="#['recieved FX trade, correlationId: ' ++ correlationId]"/>
+				<ee:transform doc:name="Transform Message" doc:id="298d38f7-94b5-4cc6-8593-0ba2085daeed" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="sqlinputparams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+index: payload.index,
+symbol: payload.symbol,
+operation: payload.operation,
+quantity: payload.quantity,
+price: payload.price
+}]]></ee:set-variable>
+						<ee:set-variable variableName="sqlQuery" ><![CDATA[%dw 2.0
+output application/json
+---
+"insert into [dbo].[fx]
+([index],symbol,operation,quantity,price)
+values
+(
+:index,
+:symbol,
+:operation,
+:quantity,
+:price
+)"
+]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="320a571e-2280-4602-9dde-f1fefc9f6e63" name="insert-trade-to-ods"/>
+				<ee:transform doc:name="set response" doc:id="d7eb073d-5b24-404d-bd67-d680b6607c76" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "trade process Successfully!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="f3cd99c5-1b87-4df5-b462-517238f71153" message='invalid trade type : #[payload."type"]'/>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="insert-trade-to-ods" doc:id="c313027b-92c5-49d5-a079-77c4d5e1c0f2" >
+		<db:insert doc:name="Insert" doc:id="99bf92da-a1ce-4998-a916-02f2580a83c1" config-ref="Database_Config">
+			<db:sql ><![CDATA[#[vars.sqlQuery]]]></db:sql>
+			<db:input-parameters ><![CDATA[#[vars.sqlinputparams]]]></db:input-parameters>
+		</db:insert>
+		<logger level="INFO" doc:name="Logger" doc:id="f3316c8c-236a-40bb-a670-f4e7c1f304c7" message="#['trade written into database, correlationId: ' ++ correlationId]" />
+	</sub-flow>
+</mule>
